@@ -10,7 +10,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "start": "node dist/cli.js",
-    "dev": "node --import tsx/esm src/cli.ts"
+    "dev": "node --import tsx/esm src/cli.ts",
+    "test:e2e": "node --import tsx/esm --test tests/e2e/*.test.ts"
   },
   "keywords": ["audit", "seo", "accessibility", "trust", "lighthouse", "playwright"],
   "author": "CrisisCore Systems",
