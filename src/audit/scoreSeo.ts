@@ -87,7 +87,7 @@ export function scoreSeo(pages: PageData[], hasSitemap: boolean, findings: Findi
       title: "Meta descriptions missing, too short, or too long",
       evidence: bad.slice(0, 3).map((p) => `${p.url} (${p.metaDescription?.length ?? 0} chars)`),
       whyItMatters:
-        "Meta descriptions are the search-result snippet. Optimal length (120–160 chars) improves click-through rates by up to 30 %.",
+        "Meta descriptions are the search-result snippet. Optimal length (120–160 chars) improves click-through rates by up to 30%.",
       recommendedFix: "Write unique meta descriptions of 120–160 characters for each page.",
       estimatedEffort: "1h",
       clientVisible: true,
