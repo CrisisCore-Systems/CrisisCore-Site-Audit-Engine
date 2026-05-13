@@ -14,13 +14,15 @@ import { renderHtml } from "../report/renderHtml.js";
 import { renderCsv } from "../report/renderCsv.js";
 
 export async function runAudit(config: AuditConfig): Promise<AuditResult> {
-  const { url, maxPages, depth, outDir } = config;
+  const { url, maxPages, depth, outDir, concurrency, skipLighthouse } = config;
   const timestamp = new Date().toISOString();
 
   console.log(`\n🔍 CrisisCore Site Audit Engine`);
-  console.log(`   Target: ${url}`);
-  console.log(`   Preset: ${config.preset}`);
-  console.log(`   Output: ${outDir}\n`);
+  console.log(`   Target:      ${url}`);
+  console.log(`   Preset:      ${config.preset}`);
+  console.log(`   Concurrency: ${concurrency}`);
+  console.log(`   Lighthouse:  ${skipLighthouse ? "skipped" : "enabled"}`);
+  console.log(`   Output:      ${outDir}\n`);
 
   // Create directory structure
   const evidenceDir = path.join(outDir, "evidence");
@@ -30,7 +32,7 @@ export async function runAudit(config: AuditConfig): Promise<AuditResult> {
   await fs.mkdir(path.join(evidenceDir, "headers"), { recursive: true });
   await fs.mkdir(path.join(evidenceDir, "pages"), { recursive: true });
 
-  // Check for sitemap
+  // Check for sitemap.xml
   let hasSitemap = false;
   try {
     const sitemapUrl = new URL("/sitemap.xml", url).href;
@@ -40,6 +42,21 @@ export async function runAudit(config: AuditConfig): Promise<AuditResult> {
     hasSitemap = false;
   }
   console.log(`📍 Sitemap: ${hasSitemap ? "found" : "not found"}`);
+
+  // Check robots.txt
+  let robotsTxtContent: string | null = null;
+  try {
+    const robotsUrl = new URL("/robots.txt", url).href;
+    const resp = await fetch(robotsUrl, { signal: AbortSignal.timeout(10000) });
+    if (resp.ok) {
+      robotsTxtContent = await resp.text();
+      console.log(`🤖 robots.txt: found`);
+    } else {
+      console.log(`🤖 robots.txt: not found`);
+    }
+  } catch {
+    console.log(`🤖 robots.txt: unreachable`);
+  }
 
   // Phase 1: Crawl
   console.log(`\n🕷️  Crawling site (max ${maxPages} pages, depth ${depth})...`);
@@ -54,9 +71,9 @@ export async function runAudit(config: AuditConfig): Promise<AuditResult> {
 
   console.log(`\n✅ Crawled ${pages.length} pages`);
 
-  // Phase 2: Run collectors concurrently (limit 3)
-  const limit = pLimit(3);
-  console.log(`\n🔬 Collecting evidence (concurrency: 3)...`);
+  // Phase 2: Run collectors concurrently
+  const limit = pLimit(concurrency);
+  console.log(`\n🔬 Collecting evidence (concurrency: ${concurrency})...`);
 
   const browser2 = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
   try {
@@ -64,7 +81,7 @@ export async function runAudit(config: AuditConfig): Promise<AuditResult> {
       pages.map((pageData) =>
         limit(async () => {
           console.log(`  [collect] ${pageData.url}`);
-          // Run all collectors, failures are non-fatal
+          // Run parallel collectors; failures are non-fatal
           await Promise.all([
             collectHeaders(pageData, evidenceDir).catch((e: Error) =>
               console.warn(`    headers failed: ${e.message}`)
@@ -76,10 +93,12 @@ export async function runAudit(config: AuditConfig): Promise<AuditResult> {
               console.warn(`    axe failed: ${e.message}`)
             ),
           ]);
-          // Lighthouse is slow, run sequentially within p-limit
-          await collectLighthouse(pageData, evidenceDir).catch((e: Error) =>
-            console.warn(`    lighthouse failed: ${e.message}`)
-          );
+          // Lighthouse is process-heavy; skip if requested
+          if (!skipLighthouse) {
+            await collectLighthouse(pageData, evidenceDir).catch((e: Error) =>
+              console.warn(`    lighthouse failed: ${e.message}`)
+            );
+          }
           // Write page JSON evidence
           const pagePath = path.join(evidenceDir, "pages", `page-${pageData.slug}.json`);
           await fs.writeFile(
@@ -95,6 +114,15 @@ export async function runAudit(config: AuditConfig): Promise<AuditResult> {
                 statusCode: pageData.statusCode,
                 hasStructuredData: pageData.hasStructuredData,
                 hasNoIndex: pageData.hasNoIndex,
+                loadTimeMs: pageData.loadTimeMs,
+                imageCount: pageData.imageCount,
+                imagesWithAlt: pageData.imagesWithAlt,
+                hasOpenGraph: pageData.hasOpenGraph,
+                hasTwitterCard: pageData.hasTwitterCard,
+                formCount: pageData.formCount,
+                hasCookieBanner: pageData.hasCookieBanner,
+                viewportMeta: pageData.viewportMeta,
+                redirectCount: pageData.redirectCount,
               },
               null,
               2
@@ -120,6 +148,7 @@ export async function runAudit(config: AuditConfig): Promise<AuditResult> {
     findings,
     score,
     hasSitemap,
+    robotsTxt: robotsTxtContent,
   };
 
   // Phase 4: Render reports
@@ -132,11 +161,12 @@ export async function runAudit(config: AuditConfig): Promise<AuditResult> {
   ]);
 
   console.log(`\n✅ Audit complete!`);
-  console.log(`   Overall score: ${score.overall}/${score.maxOverall}`);
-  console.log(`   SEO: ${score.seo.score}/${score.seo.maxScore}`);
-  console.log(`   Accessibility: ${score.accessibility.score}/${score.accessibility.maxScore}`);
-  console.log(`   Flow: ${score.flow.score}/${score.flow.maxScore}`);
-  console.log(`   Trust: ${score.trust.score}/${score.trust.maxScore}`);
+  console.log(`   Overall score: ${score.overall}/${score.maxOverall} (${Math.round((score.overall / score.maxOverall) * 100)}%)`);
+  console.log(`   SEO:           ${score.seo.score}/${score.seo.maxScore} (${score.seo.percentage}%)`);
+  console.log(`   Accessibility: ${score.accessibility.score}/${score.accessibility.maxScore} (${score.accessibility.percentage}%)`);
+  console.log(`   Flow:          ${score.flow.score}/${score.flow.maxScore} (${score.flow.percentage}%)`);
+  console.log(`   Trust:         ${score.trust.score}/${score.trust.maxScore} (${score.trust.percentage}%)`);
+  console.log(`   Performance:   ${score.performance.score}/${score.performance.maxScore} (${score.performance.percentage}%)`);
   console.log(`   Findings: ${findings.length} (${findings.filter((f) => f.severity === "critical").length} critical)`);
   console.log(`   Output: ${outDir}\n`);
 

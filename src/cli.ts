@@ -17,7 +17,19 @@ program
   .option("--depth <n>", "Crawl depth", "2")
   .option("--preset <name>", "Audit preset to apply", "trust-hardening")
   .option("--out <dir>", "Output directory", "./audits/output")
-  .action(async (url: string, options: { maxPages: string; depth: string; preset: string; out: string }) => {
+  .option("--concurrency <n>", "Parallel collector concurrency per page", "3")
+  .option("--skip-lighthouse", "Skip Lighthouse audits (faster, no performance data)", false)
+  .action(async (
+    url: string,
+    options: {
+      maxPages: string;
+      depth: string;
+      preset: string;
+      out: string;
+      concurrency: string;
+      skipLighthouse: boolean;
+    }
+  ) => {
     try {
       await runAudit({
         url,
@@ -25,6 +37,8 @@ program
         depth: parseInt(options.depth, 10),
         preset: options.preset,
         outDir: path.resolve(options.out),
+        concurrency: Math.max(1, parseInt(options.concurrency, 10)),
+        skipLighthouse: options.skipLighthouse,
       });
     } catch (err) {
       console.error("Audit failed:", err);

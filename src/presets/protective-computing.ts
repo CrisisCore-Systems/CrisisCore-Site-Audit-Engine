@@ -6,6 +6,7 @@ export const protectiveComputingPreset = {
     accessibility: false,
     flow: false,
     trust: true,
+    performance: false,
     lighthouse: false,
     axe: false,
     screenshots: false,
@@ -16,6 +17,7 @@ export const protectiveComputingPreset = {
     accessibility: 0,
     flow: 0,
     trust: 100,
+    performance: 0,
   },
 };
 

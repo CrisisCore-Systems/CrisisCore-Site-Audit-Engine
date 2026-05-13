@@ -28,7 +28,7 @@ export async function renderHtml(result: AuditResult, outputPath: string): Promi
     highCount,
     mediumCount,
     lowCount,
-    findingsByCategory: ["seo", "accessibility", "flow", "trust"].map((cat) => ({
+    findingsByCategory: ["seo", "accessibility", "flow", "trust", "performance"].map((cat) => ({
       category: cat.charAt(0).toUpperCase() + cat.slice(1),
       findings: result.findings.filter((f) => f.category === cat),
     })),
@@ -39,6 +39,20 @@ export async function renderHtml(result: AuditResult, outputPath: string): Promi
     ),
     flowPercent: Math.round((result.score.flow.score / result.score.flow.maxScore) * 100),
     trustPercent: Math.round((result.score.trust.score / result.score.trust.maxScore) * 100),
+    performancePercent: Math.round(
+      (result.score.performance.score / result.score.performance.maxScore) * 100
+    ),
+    pagesWithLighthouse: result.pages
+      .filter((p) => p.lighthouseScores !== null)
+      .map((p) => ({
+        url: p.url,
+        title: p.title || p.url,
+        performance: p.lighthouseScores?.performance ?? null,
+        accessibility: p.lighthouseScores?.accessibility ?? null,
+        bestPractices: p.lighthouseScores?.bestPractices ?? null,
+        seo: p.lighthouseScores?.seo ?? null,
+        loadTimeMs: p.loadTimeMs,
+      })),
   };
 
   const html = template(context);

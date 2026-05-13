@@ -13,4 +13,5 @@ export interface AuditScore {
   accessibility: CategoryScore;
   flow: CategoryScore;
   trust: CategoryScore;
+  performance: CategoryScore;
 }

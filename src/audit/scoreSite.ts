@@ -5,6 +5,7 @@ import { scoreSeo } from "./scoreSeo.js";
 import { scoreAccessibility } from "./scoreAccessibility.js";
 import { scoreFlow } from "./scoreFlow.js";
 import { scoreTrust } from "./scoreTrust.js";
+import { scorePerformance } from "./scorePerformance.js";
 
 export function scoreSite(
   pages: PageData[],
@@ -17,12 +18,13 @@ export function scoreSite(
   const accessibility = scoreAccessibility(pages, allFindings);
   const flow = scoreFlow(pages, allFindings);
   const trust = scoreTrust(pages, baseUrl, allFindings);
+  const performance = scorePerformance(pages, allFindings);
 
-  const overall = seo.score + accessibility.score + flow.score + trust.score;
-  const maxOverall = seo.maxScore + accessibility.maxScore + flow.maxScore + trust.maxScore;
+  const overall = seo.score + accessibility.score + flow.score + trust.score + performance.score;
+  const maxOverall = seo.maxScore + accessibility.maxScore + flow.maxScore + trust.maxScore + performance.maxScore;
 
   return {
-    score: { overall, maxOverall, seo, accessibility, flow, trust },
+    score: { overall, maxOverall, seo, accessibility, flow, trust, performance },
     findings: allFindings,
   };
 }

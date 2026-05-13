@@ -4,6 +4,12 @@ import type { PageData } from "../types/audit.js";
 
 const CTA_KEYWORDS = ["contact", "get started", "sign up", "signup", "buy", "learn more", "schedule", "book", "demo", "try", "start", "subscribe", "join", "request", "download", "free trial"];
 const SKIP_EXTENSIONS = /\.(pdf|zip|jpg|jpeg|png|gif|svg|webp|mp4|mp3|doc|docx|xls|xlsx|css|js|ico|woff|woff2|ttf|eot)$/i;
+const COOKIE_BANNER_SELECTORS = [
+  "#cookie-banner", "#cookie-notice", "#cookie-consent",
+  ".cookie-banner", ".cookie-notice", ".cookie-consent", ".cookie-bar",
+  "[id*='cookie']", "[class*='cookie']", "[id*='gdpr']", "[class*='gdpr']",
+  "[id*='consent']", "[class*='consent']",
+];
 
 function toSlug(url: string, baseUrl: string): string {
   try {
@@ -51,11 +57,22 @@ export async function crawlSite(
     const page = await context.newPage();
     try {
       console.log(`  [crawl] ${normalized}`);
+      const startMs = Date.now();
       const response = await page.goto(normalized, {
         waitUntil: "domcontentloaded",
         timeout: 30000,
       });
+      const loadTimeMs = Date.now() - startMs;
       const statusCode = response?.status() ?? 0;
+
+      // Count redirects by traversing the redirect chain
+      let redirectCount = 0;
+      let req = response?.request().redirectedFrom();
+      while (req) {
+        redirectCount++;
+        req = req.redirectedFrom();
+      }
+
       const content = await page.content();
       const $ = cheerio.load(content);
 
@@ -72,6 +89,31 @@ export async function crawlSite(
         .filter(Boolean);
       const hasStructuredData = $('script[type="application/ld+json"]').length > 0;
       const hasNoIndex = robotsMeta ? /noindex/i.test(robotsMeta) : false;
+
+      // OG / Twitter card tags
+      const hasOpenGraph = $('meta[property^="og:"]').length > 0;
+      const hasTwitterCard = $('meta[name^="twitter:"]').length > 0;
+
+      // Viewport meta
+      const viewportMeta = $('meta[name="viewport"]').attr("content") ?? null;
+
+      // Form count
+      const formCount = $("form").length;
+
+      // Image alt coverage
+      const imageCount = $("img").length;
+      const imagesWithAlt = $("img")
+        .filter((_, el) => {
+          const alt = $(el).attr("alt");
+          return alt !== undefined && alt.trim() !== "";
+        })
+        .length;
+
+      // Cookie banner detection (static HTML — JS-rendered banners checked below)
+      const hasCookieBanner =
+        COOKIE_BANNER_SELECTORS.some((sel) => {
+          try { return $(sel).length > 0; } catch { return false; }
+        });
 
       const ctas: string[] = [];
       $("a, button").each((_, el) => {
@@ -128,6 +170,15 @@ export async function crawlSite(
         axeViolations: [],
         lighthouseScores: null,
         headers: {},
+        loadTimeMs,
+        imageCount,
+        imagesWithAlt,
+        hasOpenGraph,
+        hasTwitterCard,
+        formCount,
+        hasCookieBanner,
+        viewportMeta,
+        redirectCount,
       });
     } catch (err) {
       console.warn(`  [crawl] FAILED ${normalized}: ${(err as Error).message}`);
