@@ -30,6 +30,19 @@ export async function renderMarkdown(result: AuditResult, outputPath: string): P
     lowCount,
     findingsByCategory: groupFindingsByCategory(result),
     scorePercent: Math.round((result.score.overall / result.score.maxOverall) * 100),
+    performancePercent: Math.round(
+      (result.score.performance.score / result.score.performance.maxScore) * 100
+    ),
+    pagesWithLighthouse: result.pages
+      .filter((p) => p.lighthouseScores !== null)
+      .map((p) => ({
+        url: p.url,
+        performance: p.lighthouseScores?.performance ?? "—",
+        accessibility: p.lighthouseScores?.accessibility ?? "—",
+        bestPractices: p.lighthouseScores?.bestPractices ?? "—",
+        seo: p.lighthouseScores?.seo ?? "—",
+        loadTimeMs: p.loadTimeMs != null ? `${p.loadTimeMs}ms` : "—",
+      })),
   };
 
   const markdown = template(context);
@@ -37,7 +50,7 @@ export async function renderMarkdown(result: AuditResult, outputPath: string): P
 }
 
 function groupFindingsByCategory(result: AuditResult) {
-  const categories = ["seo", "accessibility", "flow", "trust"] as const;
+  const categories = ["seo", "accessibility", "flow", "trust", "performance"] as const;
   return categories.map((cat) => ({
     category: cat.toUpperCase(),
     findings: result.findings.filter((f) => f.category === cat),

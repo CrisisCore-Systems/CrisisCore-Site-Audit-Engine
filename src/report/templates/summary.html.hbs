@@ -16,6 +16,7 @@
     --high: #f97316;
     --medium: #eab308;
     --low: #22c55e;
+    --perf: #06b6d4;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; padding: 2rem; }
@@ -24,13 +25,15 @@
   h2 { font-size: 1.3rem; margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
   h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
   .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
-  .score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
   .score-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
   .score-card .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
   .score-card .value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+  .score-card.perf-card .value { color: var(--perf); }
   .score-card .max { font-size: 0.9rem; color: var(--muted); }
   .progress { background: var(--border); border-radius: 4px; height: 6px; margin-top: 0.75rem; }
   .progress-fill { height: 6px; border-radius: 4px; background: var(--accent); }
+  .perf-card .progress-fill { background: var(--perf); }
   .summary-counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin: 1rem 0; }
   .count-badge { background: var(--surface); border-radius: 6px; padding: 0.75rem; text-align: center; border: 1px solid var(--border); }
   .count-badge .num { font-size: 1.5rem; font-weight: 700; }
@@ -50,11 +53,16 @@
   .finding-url { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.5rem; }
   .finding-detail { font-size: 0.9rem; margin-bottom: 0.4rem; }
   .finding-detail strong { color: var(--muted); }
+  .evidence-list { margin: 0.4rem 0 0 1rem; font-size: 0.82rem; color: var(--muted); list-style: disc; }
   .effort { display: inline-block; font-size: 0.75rem; background: rgba(99,102,241,0.15); color: var(--accent); border-radius: 4px; padding: 0.15rem 0.5rem; margin-top: 0.5rem; }
   table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 1rem 0; }
   th { text-align: left; padding: 0.6rem 0.75rem; background: var(--surface); color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; border-bottom: 2px solid var(--border); }
-  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-word; }
   tr:last-child td { border-bottom: none; }
+  .lh-score { font-weight: 700; }
+  .lh-good { color: var(--low); }
+  .lh-ok { color: var(--medium); }
+  .lh-bad { color: var(--critical); }
   footer { margin-top: 3rem; text-align: center; color: var(--muted); font-size: 0.8rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
 </style>
 </head>
@@ -91,6 +99,12 @@
       <div class="max">of {{score.trust.maxScore}} points</div>
       <div class="progress"><div class="progress-fill" style="width:{{trustPercent}}%"></div></div>
     </div>
+    <div class="score-card perf-card">
+      <div class="label">Performance</div>
+      <div class="value">{{score.performance.score}}</div>
+      <div class="max">of {{score.performance.maxScore}} points</div>
+      <div class="progress"><div class="progress-fill" style="width:{{performancePercent}}%"></div></div>
+    </div>
   </div>
 
   <h2>Findings Summary</h2>
@@ -103,6 +117,7 @@
 
   {{#each findingsByCategory}}
   <h2>{{category}} Findings</h2>
+  {{#if findings.length}}
   {{#each findings}}
   <div class="finding">
     <div class="finding-header">
@@ -112,29 +127,62 @@
     <div class="finding-url">{{page}}</div>
     <div class="finding-detail"><strong>Why it matters:</strong> {{whyItMatters}}</div>
     <div class="finding-detail"><strong>Fix:</strong> {{recommendedFix}}</div>
+    {{#if evidence.length}}
+    <div class="finding-detail"><strong>Evidence:</strong>
+      <ul class="evidence-list">
+        {{#each evidence}}<li>{{this}}</li>{{/each}}
+      </ul>
+    </div>
+    {{/if}}
     <span class="effort"><span aria-label="Estimated effort">&#x23F1;</span> {{estimatedEffort}}</span>
   </div>
   {{/each}}
+  {{else}}
+  <p style="color:var(--muted);font-size:0.9rem;">No findings in this category. ✅</p>
+  {{/if}}
   {{/each}}
 
   <h2>Pages Audited</h2>
   <table>
     <thead>
-      <tr><th>Page</th><th>Title</th><th>Status</th><th>H1</th></tr>
+      <tr><th>Page</th><th>Title</th><th>Status</th><th>H1</th><th>Load Time</th></tr>
     </thead>
     <tbody>
       {{#each pages}}
       <tr>
-        <td>{{url}}</td>
+        <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{url}}</td>
         <td>{{title}}</td>
         <td>{{statusCode}}</td>
         <td>{{#if h1}}{{h1.[0]}}{{else}}<em>none</em>{{/if}}</td>
+        <td>{{#if loadTimeMs}}{{loadTimeMs}}ms{{else}}—{{/if}}</td>
       </tr>
       {{/each}}
     </tbody>
   </table>
 
+  {{#if pagesWithLighthouse.length}}
+  <h2>Lighthouse Scores Per Page</h2>
+  <table>
+    <thead>
+      <tr><th>Page</th><th>Performance</th><th>Accessibility</th><th>Best Practices</th><th>SEO</th><th>Load</th></tr>
+    </thead>
+    <tbody>
+      {{#each pagesWithLighthouse}}
+      <tr>
+        <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{url}}">{{title}}</td>
+        <td><span class="lh-score {{#if performance}}{{#if (gt performance 89)}}lh-good{{else}}{{#if (gt performance 49)}}lh-ok{{else}}lh-bad{{/if}}{{/if}}{{/if}}">{{performance}}%</span></td>
+        <td><span class="lh-score {{#if accessibility}}{{#if (gt accessibility 89)}}lh-good{{else}}{{#if (gt accessibility 49)}}lh-ok{{else}}lh-bad{{/if}}{{/if}}{{/if}}">{{accessibility}}%</span></td>
+        <td><span class="lh-score {{#if bestPractices}}{{#if (gt bestPractices 89)}}lh-good{{else}}{{#if (gt bestPractices 49)}}lh-ok{{else}}lh-bad{{/if}}{{/if}}{{/if}}">{{bestPractices}}%</span></td>
+        <td><span class="lh-score {{#if seo}}{{#if (gt seo 89)}}lh-good{{else}}{{#if (gt seo 49)}}lh-ok{{else}}lh-bad{{/if}}{{/if}}{{/if}}">{{seo}}%</span></td>
+        <td>{{#if loadTimeMs}}{{loadTimeMs}}ms{{else}}—{{/if}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{/if}}
+
   <footer>Generated by CrisisCore Site Audit Engine &bull; {{date}}</footer>
 </div>
 </body>
 </html>
+

@@ -1,4 +1,4 @@
-export type FindingCategory = "seo" | "accessibility" | "flow" | "trust";
+export type FindingCategory = "seo" | "accessibility" | "flow" | "trust" | "performance";
 export type FindingSeverity = "critical" | "high" | "medium" | "low";
 export type EstimatedEffort = "15m" | "1h" | "half-day" | "multi-day";
 

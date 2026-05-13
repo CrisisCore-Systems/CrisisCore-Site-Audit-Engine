@@ -37,6 +37,16 @@ export interface PageData {
   axeViolations: AxeViolation[];
   lighthouseScores: LighthouseScores | null;
   headers: Record<string, string>;
+  // Extended signals for richer analysis
+  loadTimeMs: number | null;
+  imageCount: number;
+  imagesWithAlt: number;
+  hasOpenGraph: boolean;
+  hasTwitterCard: boolean;
+  formCount: number;
+  hasCookieBanner: boolean;
+  viewportMeta: string | null;
+  redirectCount: number;
 }
 
 export interface AuditConfig {
@@ -45,6 +55,8 @@ export interface AuditConfig {
   depth: number;
   preset: string;
   outDir: string;
+  concurrency: number;
+  skipLighthouse: boolean;
 }
 
 export interface AuditResult {
@@ -55,4 +67,5 @@ export interface AuditResult {
   findings: Finding[];
   score: AuditScore;
   hasSitemap: boolean;
+  robotsTxt: string | null;
 }
