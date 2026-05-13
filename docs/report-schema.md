@@ -108,7 +108,7 @@ interface LighthouseScores {
 ```typescript
 interface AuditScore {
   overall: number;               // Sum of all category scores
-  maxOverall: number;            // Sum of all category maxScores (125)
+  maxOverall: number;            // Sum of all category maxScores (currently 125: 5 × 25)
   seo: CategoryScore;
   accessibility: CategoryScore;
   flow: CategoryScore;

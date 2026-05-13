@@ -1,17 +1,17 @@
 # CrisisCore Site Audit Engine — Scoring Model
 
-The audit engine scores sites across **5 equal categories** (25 points each), for a maximum of **125 points**.
+The audit engine scores sites across **5 equal categories** (25 points each), for a maximum of **125 points total**.
 
 ---
 
 ## 1. SEO (25 points)
 
-Each check uses tiered (Tree of Thought) scoring rather than a binary pass/fail — see the Logic column for the tier thresholds.
+Each check uses tiered (Tree of Thought) scoring rather than a binary pass/fail. Title and meta description checks evaluate each page individually, compute a per-page bucket score, then average across all pages — see the Logic column for the tier thresholds.
 
 | Check | Points | Logic |
 |---|---|---|
-| Title quality | 3 | Avg per page: 30–60 chars → 3 pts; 10–29 or 61–70 chars → 2 pts; 1–9 chars → 1 pt; absent or >70 chars → 0 pts |
-| Meta description quality | 3 | Avg per page: 120–160 chars → 3 pts; 50–119 or 161–200 chars → 2 pts; 1–49 chars → 1 pt; absent → 0 pts |
+| Title quality | 3 | Per-page bucket averaged: 30–60 chars → 3 pts; 10–29 or 61–70 chars → 2 pts; 1–9 chars → 1 pt; absent or >70 chars → 0 pts |
+| Meta description quality | 3 | Per-page bucket averaged: 120–160 chars → 3 pts; 50–119 or 161–200 chars → 2 pts; 1–49 chars → 1 pt; absent → 0 pts |
 | Canonical tag | 2 | Proportional: pages with canonical / total pages × 2 |
 | OG / Social meta tags | 2 | Both OG and Twitter Card on ≥50% of pages → 2 pts; either one → 1 pt; neither → 0 pts |
 | Indexability | 3 | 3 if no noindex pages; deduct 1 per noindex page |
@@ -63,7 +63,7 @@ Starts at 25, deducts for violations, then adds a Lighthouse bonus.
 | Form / lead-capture presence | 2 | 2 if any page contains a `<form>` element; 0 if none |
 
 ### Flow Findings Generated
-- **flow-no-cta**: No CTA detected on any page (critical), or CTA coverage too low (high)
+- **flow-no-cta**: CTA coverage is insufficient — severity is `critical` if no CTAs are detected anywhere, `high` if CTAs are present but cover fewer than 40% of pages
 - **flow-nav-links**: Missing privacy/contact/about links
 - **flow-dead-ends**: Pages with zero outgoing internal links
 - **flow-thin-content**: Pages lacking title, H1, or meta description
@@ -107,9 +107,9 @@ Starts at 25, deducts for violations, then adds a Lighthouse bonus.
 
 Scored using tiered Lighthouse data (Tree of Thought). Tiers apply to both Lighthouse performance and best-practices scores:
 
-| Average score | Points awarded |
+| Average Lighthouse score | Points awarded |
 |---|---|
-| ≥90 | Full marks |
+| ≥90 out of 100 | Full marks |
 | 75–89 | ~75% of max |
 | 50–74 | ~42% of max |
 | <50 | ~15% of max |
