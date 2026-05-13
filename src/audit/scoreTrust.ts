@@ -7,7 +7,7 @@ export function scoreTrust(pages: PageData[], baseUrl: string, findings: Finding
   const maxScore = 25;
   const breakdown: CategoryScore["breakdown"] = {};
 
-  const allLinks = pages.flatMap(p => [...p.internalLinks, p.url]).map(l => l.toLowerCase());
+  const allLinks = [...new Set(pages.flatMap(p => [...p.internalLinks, p.url]))].map(l => l.toLowerCase());
   const allHeaders = pages.flatMap(p => Object.entries(p.headers));
   const getHeader = (name: string): string | null =>
     allHeaders.find(([k]) => k.toLowerCase() === name)?.[1] ?? null;
