@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrisisCore Site Audit — {{baseUrl}}</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d26;
+    --border: #2d3148;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #6366f1;
+    --critical: #ef4444;
+    --high: #f97316;
+    --medium: #eab308;
+    --low: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; padding: 2rem; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.3rem; margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .score-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+  .score-card .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .score-card .value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+  .score-card .max { font-size: 0.9rem; color: var(--muted); }
+  .progress { background: var(--border); border-radius: 4px; height: 6px; margin-top: 0.75rem; }
+  .progress-fill { height: 6px; border-radius: 4px; background: var(--accent); }
+  .summary-counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin: 1rem 0; }
+  .count-badge { background: var(--surface); border-radius: 6px; padding: 0.75rem; text-align: center; border: 1px solid var(--border); }
+  .count-badge .num { font-size: 1.5rem; font-weight: 700; }
+  .count-badge .lbl { font-size: 0.75rem; color: var(--muted); }
+  .critical .num { color: var(--critical); }
+  .high .num { color: var(--high); }
+  .medium .num { color: var(--medium); }
+  .low .num { color: var(--low); }
+  .finding { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 0.75rem; }
+  .finding-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+  .badge { font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 4px; text-transform: uppercase; }
+  .badge-critical { background: rgba(239,68,68,0.2); color: var(--critical); }
+  .badge-high { background: rgba(249,115,22,0.2); color: var(--high); }
+  .badge-medium { background: rgba(234,179,8,0.2); color: var(--medium); }
+  .badge-low { background: rgba(34,197,94,0.2); color: var(--low); }
+  .finding-title { font-weight: 600; }
+  .finding-url { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.5rem; }
+  .finding-detail { font-size: 0.9rem; margin-bottom: 0.4rem; }
+  .finding-detail strong { color: var(--muted); }
+  .effort { display: inline-block; font-size: 0.75rem; background: rgba(99,102,241,0.15); color: var(--accent); border-radius: 4px; padding: 0.15rem 0.5rem; margin-top: 0.5rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 1rem 0; }
+  th { text-align: left; padding: 0.6rem 0.75rem; background: var(--surface); color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; border-bottom: 2px solid var(--border); }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  footer { margin-top: 3rem; text-align: center; color: var(--muted); font-size: 0.8rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>CrisisCore Site Audit</h1>
+  <div class="meta">
+    <strong>{{baseUrl}}</strong> &mdash; {{date}} &mdash; {{pageCount}} pages &mdash; Preset: {{config.preset}}
+  </div>
+
+  <h2>Overall Score: {{score.overall}}/{{score.maxOverall}} ({{scorePercent}}%)</h2>
+  <div class="score-grid">
+    <div class="score-card">
+      <div class="label">SEO</div>
+      <div class="value">{{score.seo.score}}</div>
+      <div class="max">of {{score.seo.maxScore}} points</div>
+      <div class="progress"><div class="progress-fill" style="width:{{seoPercent}}%"></div></div>
+    </div>
+    <div class="score-card">
+      <div class="label">Accessibility</div>
+      <div class="value">{{score.accessibility.score}}</div>
+      <div class="max">of {{score.accessibility.maxScore}} points</div>
+      <div class="progress"><div class="progress-fill" style="width:{{accessibilityPercent}}%"></div></div>
+    </div>
+    <div class="score-card">
+      <div class="label">Flow</div>
+      <div class="value">{{score.flow.score}}</div>
+      <div class="max">of {{score.flow.maxScore}} points</div>
+      <div class="progress"><div class="progress-fill" style="width:{{flowPercent}}%"></div></div>
+    </div>
+    <div class="score-card">
+      <div class="label">Trust</div>
+      <div class="value">{{score.trust.score}}</div>
+      <div class="max">of {{score.trust.maxScore}} points</div>
+      <div class="progress"><div class="progress-fill" style="width:{{trustPercent}}%"></div></div>
+    </div>
+  </div>
+
+  <h2>Findings Summary</h2>
+  <div class="summary-counts">
+    <div class="count-badge critical"><div class="num">{{criticalCount}}</div><div class="lbl">Critical</div></div>
+    <div class="count-badge high"><div class="num">{{highCount}}</div><div class="lbl">High</div></div>
+    <div class="count-badge medium"><div class="num">{{mediumCount}}</div><div class="lbl">Medium</div></div>
+    <div class="count-badge low"><div class="num">{{lowCount}}</div><div class="lbl">Low</div></div>
+  </div>
+
+  {{#each findingsByCategory}}
+  <h2>{{category}} Findings</h2>
+  {{#each findings}}
+  <div class="finding">
+    <div class="finding-header">
+      <span class="badge badge-{{severity}}">{{severity}}</span>
+      <span class="finding-title">{{title}}</span>
+    </div>
+    <div class="finding-url">{{page}}</div>
+    <div class="finding-detail"><strong>Why it matters:</strong> {{whyItMatters}}</div>
+    <div class="finding-detail"><strong>Fix:</strong> {{recommendedFix}}</div>
+    <span class="effort"><span aria-label="Estimated effort">&#x23F1;</span> {{estimatedEffort}}</span>
+  </div>
+  {{/each}}
+  {{/each}}
+
+  <h2>Pages Audited</h2>
+  <table>
+    <thead>
+      <tr><th>Page</th><th>Title</th><th>Status</th><th>H1</th></tr>
+    </thead>
+    <tbody>
+      {{#each pages}}
+      <tr>
+        <td>{{url}}</td>
+        <td>{{title}}</td>
+        <td>{{statusCode}}</td>
+        <td>{{#if h1}}{{h1.[0]}}{{else}}<em>none</em>{{/if}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <footer>Generated by CrisisCore Site Audit Engine &bull; {{date}}</footer>
+</div>
+</body>
+</html>
