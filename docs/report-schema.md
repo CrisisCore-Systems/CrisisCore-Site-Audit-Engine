@@ -15,6 +15,7 @@ interface AuditResult {
   findings: Finding[];        // All findings across all categories
   score: AuditScore;          // Aggregate and per-category scores
   hasSitemap: boolean;        // Whether sitemap.xml was found
+  robotsTxt: string | null;   // Raw content of robots.txt, or null if not found
 }
 ```
 
@@ -24,11 +25,13 @@ interface AuditResult {
 
 ```typescript
 interface AuditConfig {
-  url: string;       // Target URL
-  maxPages: number;  // Max pages crawled
-  depth: number;     // BFS crawl depth
-  preset: string;    // Preset name used (e.g., "trust-hardening")
-  outDir: string;    // Absolute path to output directory
+  url: string;             // Target URL
+  maxPages: number;        // Max pages crawled
+  depth: number;           // BFS crawl depth
+  preset: string;          // Preset name used (e.g., "trust-hardening")
+  outDir: string;          // Absolute path to output directory
+  concurrency: number;     // Parallel collector concurrency per page
+  skipLighthouse: boolean; // Whether Lighthouse audits were skipped
 }
 ```
 
@@ -59,6 +62,16 @@ interface PageData {
   axeViolations: AxeViolation[];      // Summarized axe-core violations
   lighthouseScores: LighthouseScores | null;  // Lighthouse category scores
   headers: Record<string, string>;    // HTTP response headers (lowercase keys)
+  // Extended signals collected during crawl
+  loadTimeMs: number | null;          // Page load time in milliseconds
+  imageCount: number;                 // Total number of <img> elements
+  imagesWithAlt: number;              // Number of <img> elements with non-empty alt text
+  hasOpenGraph: boolean;              // Whether og: meta tags were detected
+  hasTwitterCard: boolean;            // Whether twitter: meta tags were detected
+  formCount: number;                  // Number of <form> elements on the page
+  hasCookieBanner: boolean;           // Whether a cookie consent banner was detected
+  viewportMeta: string | null;        // <meta name="viewport"> content, or null if absent
+  redirectCount: number;              // Number of redirects followed to reach the page
 }
 ```
 
@@ -94,12 +107,13 @@ interface LighthouseScores {
 
 ```typescript
 interface AuditScore {
-  overall: number;           // Sum of all category scores
-  maxOverall: number;        // Sum of all category maxScores (100)
+  overall: number;               // Sum of all category scores
+  maxOverall: number;            // Sum of all category maxScores (currently 125: 5 × 25)
   seo: CategoryScore;
   accessibility: CategoryScore;
   flow: CategoryScore;
   trust: CategoryScore;
+  performance: CategoryScore;
 }
 ```
 
@@ -128,7 +142,7 @@ interface CategoryScore {
 ```typescript
 interface Finding {
   id: string;                  // Unique ID, format: "{category}-{check}"
-  category: "seo" | "accessibility" | "flow" | "trust";
+  category: "seo" | "accessibility" | "flow" | "trust" | "performance";
   severity: "critical" | "high" | "medium" | "low";
   page: string;                // Affected URL or "site-wide"
   title: string;               // Short description of the issue
